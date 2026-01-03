@@ -1,0 +1,22 @@
+<resources>
+
+        <string name="app_name">Klinik Gigi</string>
+        <string name="login">Login</string>
+        <string name="register">Register</string>
+        <string name="home">Home</string>
+        <string name="dokter">Data Dokter</string>
+        <string name="entry_dokter">Tambah Dokter</string>
+        <string name="admin_home">Admin Home</string>
+        <string name="dokter_home">Dokter Home</string>
+        <string name="add_edit_dokter">Tambah / Edit Dokter</string>
+        <string name="admin_janji">Janji Temu (Admin)</string>
+        <string name="dokter_janji">Janji Temu (Dokter)</string>
+        <string name="entry_janji">Entry Janji Temu</string>
+        <string name="halaman_pasien">Data Pasien</string>
+        <string name="entry_pasien">Entry Pasien</string>
+        <string name="edit_pasien">Edit Pasien</string>
+        <string name="entry_tindakan">Entry Tindakan</string>
+        <string name="tindakan_title">Data Tindakan</string>
+        <string name="edit_tindakan">Edit Tindakan</string>
+        <string name="edit_janji_temu">Edit Janji Temu</string>
+</resources>
