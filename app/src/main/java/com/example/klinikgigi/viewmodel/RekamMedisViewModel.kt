@@ -31,6 +31,12 @@ class RekamMedisViewModel(
     private val _janjiList = MutableStateFlow<List<JanjiTemu>>(emptyList())
     val janjiList: StateFlow<List<JanjiTemu>> = _janjiList
 
+    private val _dokterList = MutableStateFlow<List<com.example.klinikgigi.modeldata.Dokter>>(emptyList())
+    val dokterList: StateFlow<List<com.example.klinikgigi.modeldata.Dokter>> = _dokterList
+
+    private val _pasienList = MutableStateFlow<List<com.example.klinikgigi.modeldata.Pasien>>(emptyList())
+    val pasienList: StateFlow<List<com.example.klinikgigi.modeldata.Pasien>> = _pasienList
+
     // =======================
     // UI STATE
     // =======================
@@ -40,6 +46,13 @@ class RekamMedisViewModel(
 
     private val _status = MutableStateFlow<String?>(null)
     val status: StateFlow<String?> = _status
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
 
     private val _success = MutableStateFlow(false)
     val success: StateFlow<Boolean> = _success
@@ -89,6 +102,7 @@ class RekamMedisViewModel(
         viewModelScope.launch {
             _loading.value = true
             try {
+               // Load main data
                 _rekamMedisList.value = repository.getRekamMedis()
             } catch (e: Exception) {
                 _status.value = "Gagal memuat rekam medis"
@@ -129,6 +143,26 @@ class RekamMedisViewModel(
                 _janjiList.value = repository.getJanjiTemu()
             } catch (e: Exception) {
                 _status.value = "Gagal memuat janji temu"
+            }
+        }
+    }
+
+    fun loadDokter() {
+        viewModelScope.launch {
+            try {
+                _dokterList.value = repository.getDokter()
+            } catch (e: Exception) {
+                _status.value = "Gagal memuat dokter"
+            }
+        }
+    }
+
+    fun loadPasien() {
+        viewModelScope.launch {
+            try {
+                _pasienList.value = repository.getPasien()
+            } catch (e: Exception) {
+                _status.value = "Gagal memuat pasien"
             }
         }
     }
