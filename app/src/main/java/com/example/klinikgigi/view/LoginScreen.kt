@@ -1,12 +1,26 @@
 package com.example.klinikgigi.view
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.klinikgigi.viewmodel.AuthViewModel
 import com.example.klinikgigi.uicontroller.route.*
@@ -20,6 +34,7 @@ fun LoginScreen(
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     val user by viewModel.user.collectAsState()
     val message by viewModel.message.collectAsState()
@@ -37,11 +52,9 @@ fun LoginScreen(
     }
 
     LaunchedEffect(user, message) {
-        // Simpan ke variabel lokal
         val currentUser = user
         val currentMessage = message
 
-        // ✅ Jika login SUKSES
         if (currentUser != null) {
             loginError = null
             val targetRoute = when (currentUser.role.lowercase()) {
@@ -53,9 +66,7 @@ fun LoginScreen(
                 popUpTo(0) { inclusive = true }
             }
             viewModel.clearMessage()
-        }
-        // ❌ Jika ada PESAN ERROR
-        else if (currentMessage != null) {
+        } else if (currentMessage != null) {
             if (currentMessage == "Username dan password wajib diisi") {
                 scope.launch {
                     snackbarHostState.showSnackbar(currentMessage)
@@ -73,69 +84,129 @@ fun LoginScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primaryContainer,
+                            MaterialTheme.colorScheme.background
+                        )
+                    )
+                )
                 .padding(padding),
             contentAlignment = Alignment.Center
         ) {
-            Column(
+            Card(
                 modifier = Modifier
                     .padding(24.dp)
                     .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                shape = RoundedCornerShape(24.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                Text(
-                    text = "Login",
-                    style = MaterialTheme.typography.headlineMedium
-                )
-
-                OutlinedTextField(
-                    value = username,
-                    onValueChange = { username = it },
-                    label = { Text("Username") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("Password") },
-                    isError = loginError != null,
-                    visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // 👇 Tampilkan error hanya jika ada dan tidak loading
-                if (!loading && loginError != null) {
+                Column(
+                    modifier = Modifier
+                        .padding(32.dp)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
                     Text(
-                        text = loginError!!,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier
-                            .padding(start = 16.dp, top = 4.dp)
-                            .fillMaxWidth()
-                    )
-                }
-
-                Button(
-                    onClick = { viewModel.login(username, password) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !loading && username.isNotBlank() && password.isNotBlank()
-                ) {
-                    if (loading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary
+                        text = "Selamat Datang!",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
                         )
-                    } else {
-                        Text("Login")
-                    }
-                }
+                    )
 
-                TextButton(
-                    onClick = { navController.navigate(DestinasiRegister.route) }
-                ) {
-                    Text("Belum punya akun? Register")
+                    Text(
+                        text = "Silakan login untuk melanjutkan",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = username,
+                        onValueChange = { username = it },
+                        label = { Text("Username") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("Password") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        trailingIcon = {
+                            val image = if (passwordVisible)
+                                Icons.Default.Visibility
+                            else Icons.Default.VisibilityOff
+
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(imageVector = image, contentDescription = null)
+                            }
+                        },
+                        isError = loginError != null,
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    if (!loading && loginError != null) {
+                        Text(
+                            text = loginError!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    Button(
+                        onClick = { viewModel.login(username, password) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = !loading && username.isNotBlank() && password.isNotBlank()
+                    ) {
+                        if (loading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = "Login",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    TextButton(
+                        onClick = { navController.navigate(DestinasiRegister.route) }
+                    ) {
+                        Text("Belum punya akun? Register")
+                    }
                 }
             }
         }

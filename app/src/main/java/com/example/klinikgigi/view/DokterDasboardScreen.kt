@@ -1,55 +1,163 @@
-package com.example.klinikgigi.view.dokter
+package com.example.klinikgigi.view
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.klinikgigi.modeldata.JanjiTemuPerDokter
+import com.example.klinikgigi.viewmodel.DokterDashboardViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DokterHomeScreen(
-    navigateToRekamMedis: () -> Unit,
-    navigateToJanjiTemu: () -> Unit,
-    navigateLogout: () -> Unit
+fun DokterDashboardScreen(
+    viewModel: DokterDashboardViewModel = viewModel(),
+    onDokterClick: (JanjiTemuPerDokter) -> Unit,
+    onLogout: () -> Unit
 ) {
+    val dokterList by viewModel.jadwalKlinik.collectAsState()
+    val loading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadJadwalKlinik()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Dashboard Dokter") }
+                title = {
+                    Text(
+                        "Dashboard Dokter",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                },
+                actions = {
+                    IconButton(onClick = onLogout) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = "Logout",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    titleContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             )
         }
-    ) { padding ->
-
-        Column(
+    ) { paddingValues ->
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(paddingValues)
         ) {
+            when {
+                loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
 
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = navigateToRekamMedis
+                errorMessage != null -> {
+                    Text(
+                        text = errorMessage ?: "Terjadi kesalahan",
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+
+                dokterList.isEmpty() -> {
+                    Text(
+                        text = "Tidak ada data dokter saat ini",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+
+                else -> {
+                    LazyColumn(
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        item {
+                            Text(
+                                "Daftar Dokter & Jadwal",
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                        }
+                        items(dokterList) { dokter ->
+                            DokterCard(dokter = dokter, onClick = { onDokterClick(dokter) })
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DokterCard(
+    dokter: JanjiTemuPerDokter,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(50.dp)
             ) {
-                Text("Rekam Medis")
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.AccountCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(30.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
             }
 
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = navigateToJanjiTemu
-            ) {
-                Text("Janji Temu")
-            }
+            Spacer(modifier = Modifier.width(16.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedButton(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = navigateLogout
-            ) {
-                Text("Logout")
+            Column {
+                Text(
+                    text = dokter.nama_dokter,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 18.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "${dokter.janji_temu.size} Jadwal Janji Temu",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.secondary
+                )
             }
         }
     }

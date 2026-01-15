@@ -1,23 +1,32 @@
 package com.example.klinikgigi.view.janjitemu
 
 import android.app.DatePickerDialog
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.EditCalendar
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MedicalServices
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.klinikgigi.modeldata.JanjiTemu
-import com.example.klinikgigi.modeldata.StatusJanji // ✅ import enum
+import com.example.klinikgigi.modeldata.StatusJanji
 import com.example.klinikgigi.viewmodel.JanjiTemuViewModel
+import kotlinx.coroutines.launch
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,264 +39,244 @@ fun EntryJanjiTemuScreen(
     val dokterList by viewModel.dokterList.collectAsState()
     val pasienList by viewModel.pasienList.collectAsState()
     val selectedJanji by viewModel.selectedJanji.collectAsState()
-
-    val isEditMode = selectedJanji != null
-
-    var selectedDokterId by rememberSaveable { mutableStateOf<Int?>(null) }
-    var selectedPasienId by rememberSaveable { mutableStateOf<Int?>(null) }
-    var tanggal by rememberSaveable { mutableStateOf("") }
-    var jam by rememberSaveable { mutableStateOf("") }
-    var keluhan by rememberSaveable { mutableStateOf("") }
-    // ✅ Ganti ke StatusJanji
-    var status by rememberSaveable { mutableStateOf(StatusJanji.MENUNGGU) }
-
-    // ✅ Ganti ke List<StatusJanji>
-    val statusList = listOf(StatusJanji.MENUNGGU, StatusJanji.SELESAI, StatusJanji.BATAL)
-
     val loading by viewModel.loading.collectAsState()
     val statusMsg by viewModel.status.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current
 
+    var selectedDokterId by remember { mutableStateOf<Int?>(null) }
+    var selectedPasienId by remember { mutableStateOf<Int?>(null) }
+    var tanggal by remember { mutableStateOf("") }
+    var jam by remember { mutableStateOf("") }
+    var keluhan by remember { mutableStateOf("") }
+    var status by remember { mutableStateOf(StatusJanji.MENUNGGU) }
+    
+    var showSuccessDialog by remember { mutableStateOf(false) }
+
+    val statusList = StatusJanji.values().toList()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    // Initialize logic
     LaunchedEffect(selectedJanji) {
-        selectedJanji?.let { janji ->
-            selectedDokterId = janji.id_dokter
-            selectedPasienId = janji.id_pasien
-            tanggal = janji.tanggal_janji
-            jam = janji.jam_janji
-            keluhan = janji.keluhan
-            status = janji.status // ✅ janji.status adalah StatusJanji
-        } ?: run {
-            selectedDokterId = null
-            selectedPasienId = null
-            tanggal = ""
-            jam = ""
-            keluhan = ""
-            status = StatusJanji.MENUNGGU // ✅ default enum
+        selectedJanji?.let {
+            selectedDokterId = it.id_dokter
+            selectedPasienId = it.id_pasien
+            tanggal = it.tanggal_janji
+            jam = it.jam_janji
+            keluhan = it.keluhan
+            status = it.status
         }
     }
 
     LaunchedEffect(statusMsg) {
         statusMsg?.let {
-            snackbarHostState.showSnackbar(it)
+            if (it.contains("berhasil", ignoreCase = true)) {
+                showSuccessDialog = true
+            } else {
+                scope.launch { snackbarHostState.showSnackbar(it) }
+            }
             viewModel.clearStatus()
-            navigateBack()
         }
     }
 
-    fun openDatePicker() {
-        val today = Calendar.getInstance()
-        val maxDate = today.clone() as Calendar
-        maxDate.add(Calendar.DAY_OF_YEAR, 7)
+    // Validation
+    val isFormValid = selectedDokterId != null && 
+                      selectedPasienId != null && 
+                      tanggal.isNotBlank() && 
+                      jam.isNotBlank()
 
+    // DatePicker
+    val context = LocalContext.current
+    val calendar = Calendar.getInstance()
+    fun openDatePicker() {
         DatePickerDialog(
             context,
-            { _, y, m, d ->
-                tanggal = "%04d-%02d-%02d".format(y, m + 1, d)
-            },
-            today.get(Calendar.YEAR),
-            today.get(Calendar.MONTH),
-            today.get(Calendar.DAY_OF_MONTH)
+            { _, y, m, d -> tanggal = "%04d-%02d-%02d".format(y, m + 1, d) },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
         ).apply {
-            datePicker.minDate = today.timeInMillis
-            datePicker.maxDate = maxDate.timeInMillis
+            datePicker.minDate = System.currentTimeMillis()
         }.show()
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isEditMode) "Edit Janji Temu" else "Tambah Janji Temu") },
+                title = { Text(if (janjiId == null) "Buat Janji Temu" else "Edit Janji Temu", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = navigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Kembali")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .verticalScroll(rememberScrollState())
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // ========== DOKTER ==========
+            // Dropdown Dokter
             var expandedDokter by remember { mutableStateOf(false) }
-            val selectedDokter = dokterList.find { it.id_dokter == selectedDokterId }
-
+            val selectedDokterName = dokterList.find { it.id_dokter == selectedDokterId }?.nama_dokter ?: ""
             ExposedDropdownMenuBox(
                 expanded = expandedDokter,
                 onExpandedChange = { expandedDokter = !expandedDokter }
             ) {
                 OutlinedTextField(
-                    value = selectedDokter?.nama_dokter ?: "",
+                    value = selectedDokterName,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Dokter") },
+                    label = { Text("Pilih Dokter") },
+                    leadingIcon = { Icon(Icons.Default.MedicalServices, null) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandedDokter) },
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.menuAnchor().fillMaxWidth()
                 )
-                ExposedDropdownMenu(
-                    expanded = expandedDokter,
-                    onDismissRequest = { expandedDokter = false }
-                ) {
-                    dokterList.forEach {
+                ExposedDropdownMenu(expanded = expandedDokter, onDismissRequest = { expandedDokter = false }) {
+                    dokterList.forEach { 
                         DropdownMenuItem(
-                            text = { Text("${it.nama_dokter} (${it.spesialisasi})") },
-                            onClick = {
-                                selectedDokterId = it.id_dokter
-                                expandedDokter = false
-                            }
-                        )
+                            text = { Text(it.nama_dokter) },
+                            onClick = { selectedDokterId = it.id_dokter; expandedDokter = false }
+                        ) 
                     }
                 }
             }
 
-            // ========== PASIEN ==========
+            // Dropdown Pasien
             var expandedPasien by remember { mutableStateOf(false) }
-            val selectedPasien = pasienList.find { it.id_pasien == selectedPasienId }
-
+            val selectedPasienName = pasienList.find { it.id_pasien == selectedPasienId }?.nama_pasien ?: ""
             ExposedDropdownMenuBox(
                 expanded = expandedPasien,
                 onExpandedChange = { expandedPasien = !expandedPasien }
             ) {
                 OutlinedTextField(
-                    value = selectedPasien?.nama_pasien ?: "",
+                    value = selectedPasienName,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Pasien") },
+                    label = { Text("Pilih Pasien") },
+                    leadingIcon = { Icon(Icons.Default.Person, null) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandedPasien) },
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.menuAnchor().fillMaxWidth()
                 )
-                ExposedDropdownMenu(
-                    expanded = expandedPasien,
-                    onDismissRequest = { expandedPasien = false }
-                ) {
-                    pasienList.forEach {
+                ExposedDropdownMenu(expanded = expandedPasien, onDismissRequest = { expandedPasien = false }) {
+                    pasienList.forEach { 
                         DropdownMenuItem(
                             text = { Text(it.nama_pasien) },
-                            onClick = {
-                                selectedPasienId = it.id_pasien
-                                expandedPasien = false
-                            }
-                        )
+                            onClick = { selectedPasienId = it.id_pasien; expandedPasien = false }
+                        ) 
                     }
                 }
             }
 
-            // ========== TANGGAL ==========
+            // Tanggal
             OutlinedTextField(
                 value = tanggal,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Tanggal Janji Temu") },
-                trailingIcon = {
-                    IconButton(onClick = { openDatePicker() }) {
-                        Icon(Icons.Default.DateRange, contentDescription = "Pilih Tanggal")
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { openDatePicker() }
+                label = { Text("Tanggal") },
+                leadingIcon = { Icon(Icons.Default.CalendarMonth, null) },
+                trailingIcon = { IconButton(onClick = { openDatePicker() }) { Icon(Icons.Default.EditCalendar, null) } },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth().clickable { openDatePicker() }
             )
 
-            // ========== JAM ==========
+            // Jam
             OutlinedTextField(
                 value = jam,
                 onValueChange = { jam = it },
-                label = { Text("Jam (HH:MM)") },
+                label = { Text("Jam (Contoh: 10:00)") },
+                leadingIcon = { Icon(Icons.Default.Schedule, null) },
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // ========== KELUHAN ==========
+            // Keluhan
             OutlinedTextField(
                 value = keluhan,
                 onValueChange = { keluhan = it },
-                label = { Text("Keluhan Pasien") },
-                maxLines = 3,
-                modifier = Modifier.fillMaxWidth()
+                label = { Text("Keluhan") },
+                leadingIcon = { Icon(Icons.Default.Info, null) },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                maxLines = 3
             )
 
-            // ========== STATUS ==========
-            var expandedStatus by remember { mutableStateOf(false) }
-            ExposedDropdownMenuBox(
-                expanded = expandedStatus,
-                onExpandedChange = { expandedStatus = !expandedStatus }
-            ) {
-                OutlinedTextField(
-                    value = status.toString().replaceFirstChar { it.titlecase() }, // ✅ tampilkan "Menunggu"
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Status") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandedStatus) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth()
-                )
-                ExposedDropdownMenu(
+            // Status (hanya tampil jika edit / id != null)
+            if (janjiId != null) {
+                var expandedStatus by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
                     expanded = expandedStatus,
-                    onDismissRequest = { expandedStatus = false }
+                    onExpandedChange = { expandedStatus = !expandedStatus }
                 ) {
-                    statusList.forEach { statusValue ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(statusValue.toString().replaceFirstChar { it.titlecase() })
-                            },
-                            onClick = {
-                                status = statusValue // ✅ assign StatusJanji
-                                expandedStatus = false
-                            }
-                        )
-                    }
-                }
-            }
-
-            // ========== BUTTON ==========
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Button(
-                    modifier = Modifier.weight(1f),
-                    enabled = !loading &&
-                            selectedDokterId != null &&
-                            selectedPasienId != null &&
-                            tanggal.isNotBlank() &&
-                            jam.isNotBlank(),
-                    onClick = {
-                        val janji = JanjiTemu(
-                            id_janji = selectedJanji?.id_janji ?: 0,
-                            id_dokter = selectedDokterId!!,
-                            id_pasien = selectedPasienId!!,
-                            tanggal_janji = tanggal,
-                            jam_janji = jam,
-                            keluhan = keluhan,
-                            status = status // ✅ sekarang status adalah StatusJanji
-                        )
-
-                        if (isEditMode) {
-                            viewModel.updateJanjiTemu(janji)
-                        } else {
-                            viewModel.createJanjiTemu(janji)
+                    OutlinedTextField(
+                        value = status.name,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Status") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandedStatus) },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(expanded = expandedStatus, onDismissRequest = { expandedStatus = false }) {
+                        statusList.forEach { 
+                            DropdownMenuItem(
+                                text = { Text(it.name) },
+                                onClick = { status = it; expandedStatus = false }
+                            ) 
                         }
                     }
-                ) {
-                    Text(if (isEditMode) "Simpan" else "Tambah")
-                }
-
-                OutlinedButton(
-                    modifier = Modifier.weight(1f),
-                    onClick = navigateBack
-                ) {
-                    Text("Batal")
                 }
             }
+
+            Spacer(Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    val janji = JanjiTemu(
+                        id_janji = janjiId ?: 0,
+                        id_dokter = selectedDokterId!!,
+                        id_pasien = selectedPasienId!!,
+                        tanggal_janji = tanggal,
+                        jam_janji = jam,
+                        keluhan = keluhan,
+                        status = status
+                    )
+                    if (janjiId == null) viewModel.createJanjiTemu(janji) else viewModel.updateJanjiTemu(janji)
+                },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                enabled = isFormValid && !loading
+            ) {
+                if (loading) CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
+                else Text("Simpan Data", fontWeight = FontWeight.Bold)
+            }
         }
+    }
+
+     if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { },
+            icon = { Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = { Text("Sukses") },
+            text = { Text("Data janji temu berhasil disimpan!") },
+            confirmButton = {
+                Button(onClick = {
+                    showSuccessDialog = false
+                    navigateBack()
+                }) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }

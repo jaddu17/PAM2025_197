@@ -1,15 +1,28 @@
 package com.example.klinikgigi.view.dokter
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.klinikgigi.modeldata.Dokter
 import com.example.klinikgigi.viewmodel.DokterViewModel
 
@@ -23,15 +36,11 @@ fun HalamanDokter(
 ) {
     val dokterList by viewModel.dokterList.collectAsState()
     val loading by viewModel.loading.collectAsState()
-    val searchQuery by viewModel.searchQuery.collectAsState() // 🔍 Ambil query saat ini
+    val searchQuery by viewModel.searchQuery.collectAsState()
 
-    // State untuk input TextField (agar tetap sinkron)
     var textSearch by remember { mutableStateOf(searchQuery) }
-
-    // State untuk AlertDialog hapus
     var dokterYangAkanDihapus by remember { mutableStateOf<Dokter?>(null) }
 
-    // Sinkronisasi perubahan input ke ViewModel
     LaunchedEffect(textSearch) {
         viewModel.setSearchQuery(textSearch)
     }
@@ -39,17 +48,25 @@ fun HalamanDokter(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Data Dokter") },
+                title = { Text("Data Dokter", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Kembali")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    titleContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onTambah) {
-                Text("+")
+            FloatingActionButton(
+                onClick = onTambah,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Tambah Dokter")
             }
         }
     ) { padding ->
@@ -58,21 +75,22 @@ fun HalamanDokter(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             // 🔍 Search Bar
             OutlinedTextField(
                 value = textSearch,
                 onValueChange = { textSearch = it },
                 label = { Text("Cari dokter...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .padding(16.dp),
                 singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Konten utama: loading, kosong, atau daftar
+            // Konten utama
             when {
                 loading -> Box(
                     Modifier.fillMaxSize(),
@@ -82,22 +100,29 @@ fun HalamanDokter(
                 dokterList.isEmpty() -> Box(
                     Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
-                ) { Text("Belum ada data dokter") }
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Belum ada data dokter", color = MaterialTheme.colorScheme.outline)
+                    }
+                }
 
                 else -> LazyColumn(
-                    Modifier.padding(horizontal = 16.dp)
+                    contentPadding = PaddingValues(bottom = 80.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(dokterList) { dokter ->
                         DokterItem(
                             dokter = dokter,
-                            onEdit = {
-                                dokter.id_dokter?.let { id ->
-                                    onEdit(id)
-                                }
-                            },
-                            onDelete = {
-                                dokterYangAkanDihapus = dokter
-                            }
+                            onEdit = { dokter.id_dokter?.let { onEdit(it) } },
+                            onDelete = { dokterYangAkanDihapus = dokter }
                         )
                     }
                 }
@@ -105,22 +130,22 @@ fun HalamanDokter(
         }
     }
 
-    // 💥 AlertDialog Konfirmasi Hapus
+    // 💥 AlertDialog
     dokterYangAkanDihapus?.let { dokter ->
         AlertDialog(
             onDismissRequest = { dokterYangAkanDihapus = null },
-            title = { Text("Konfirmasi Hapus") },
-            text = { Text("Yakin ingin menghapus dokter \"${dokter.nama_dokter}\"?") },
+            icon = { Icon(Icons.Default.Delete, contentDescription = null) },
+            title = { Text("Hapus Dokter") },
+            text = { Text("Apakah Anda yakin ingin menghapus data dr. ${dokter.nama_dokter}?") },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        dokter.id_dokter?.let { id ->
-                            viewModel.deleteDokter(id)
-                        }
+                        dokter.id_dokter?.let { viewModel.deleteDokter(it) }
                         dokterYangAkanDihapus = null
-                    }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Ya")
+                    Text("Hapus")
                 }
             },
             dismissButton = {
@@ -139,26 +164,71 @@ fun DokterItem(
     onDelete: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(
-            Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Nama Dokter : ${dokter.nama_dokter}")
-            Text("Spesialisasi : ${dokter.spesialisasi}")
-            Text("Telepon   : ${dokter.nomor_telepon}")
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+            // Avatar Placeholder
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
             ) {
-                TextButton(onClick = onEdit) { Text("Edit") }
-                Spacer(Modifier.width(8.dp))
-                TextButton(onClick = onDelete) { Text("Hapus") }
+                Icon(
+                    Icons.Default.Person,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Text Info
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = dokter.nama_dokter,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = dokter.spesialisasi,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Phone,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.outline
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = dokter.nomor_telepon,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+            }
+
+            // Actions
+            Column {
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = MaterialTheme.colorScheme.error)
+                }
             }
         }
     }

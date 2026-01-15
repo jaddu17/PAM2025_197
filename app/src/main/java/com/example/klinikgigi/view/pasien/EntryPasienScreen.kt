@@ -1,20 +1,28 @@
 package com.example.klinikgigi.view.pasien
 
 import android.app.DatePickerDialog
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.klinikgigi.modeldata.Pasien
 import com.example.klinikgigi.viewmodel.PasienViewModel
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,7 +33,6 @@ fun EntryPasienScreen(
     navigateBack: () -> Unit
 ) {
 
-    // ================= LOAD DATA EDIT =================
     LaunchedEffect(pasienId) {
         pasienId?.let {
             pasienViewModel.loadPasienById(it)
@@ -41,28 +48,37 @@ fun EntryPasienScreen(
     var tanggalLahir by remember { mutableStateOf("") }
     var alamat by remember { mutableStateOf("") }
     var nomorTelepon by remember { mutableStateOf("") }
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
-    // State untuk AlertDialog error
-    var showErrorDialog by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
-    // ✅ Penanganan pesan error/sukses yang aman terhadap null
+    // Handle messages
     LaunchedEffect(message) {
         message?.let { msg ->
-            if (msg.startsWith("Error:")) {
-                errorMessage = msg
-                showErrorDialog = true
-            } else if (msg.contains("berhasil")) {
-                navigateBack()
+            if (msg.contains("berhasil", ignoreCase = true)) {
+                showSuccessDialog = true
             } else {
-                errorMessage = msg
-                showErrorDialog = true
+                scope.launch { snackbarHostState.showSnackbar(msg) }
             }
             pasienViewModel.clearMessage()
         }
     }
 
-    // ================= DATE PICKER =================
+    // Validation
+    val telpValid = nomorTelepon.isEmpty() || nomorTelepon.matches(Regex("^08[0-9]{9,11}$"))
+    val telpError = if (nomorTelepon.isNotEmpty() && !telpValid) {
+        "Nomor telepon harus diawali 08 dan terdiri dari 11–13 digit"
+    } else null
+
+    val isFormValid = nama.isNotBlank() &&
+            jenisKelamin.isNotBlank() &&
+            tanggalLahir.isNotBlank() &&
+            alamat.isNotBlank() &&
+            telpValid &&
+            nomorTelepon.length in 11..13
+
+    // DatePicker
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
 
@@ -80,69 +96,47 @@ fun EntryPasienScreen(
         }.show()
     }
 
-    // ================= UI =================
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(if (pasienId == null) "Tambah Pasien" else "Edit Pasien")
-                },
+                title = { Text(if (pasienId == null) "Tambah Pasien" else "Edit Pasien", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = navigateBack) {
-                        Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = "Kembali")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Kembali")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-
-        if (pasienId != null && pasien == null && !loading) {
-            Box(
-                Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Gagal memuat data pasien")
-            }
-            return@Scaffold
-        }
-
-        if (loading) {
-            Box(
-                Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-            return@Scaffold
-        }
-
         Column(
             modifier = Modifier
+                .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
             OutlinedTextField(
                 value = nama,
                 onValueChange = { nama = it },
                 label = { Text("Nama Pasien") },
+                leadingIcon = { Icon(Icons.Default.Person, null) },
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Text("Jenis Kelamin")
+            Text("Jenis Kelamin", style = MaterialTheme.typography.bodyMedium)
             Row {
-                RadioButton(
-                    selected = jenisKelamin == "Laki-laki",
-                    onClick = { jenisKelamin = "Laki-laki" }
-                )
-                Text("Laki-laki")
+                RadioButton(selected = jenisKelamin == "Laki-laki", onClick = { jenisKelamin = "Laki-laki" })
+                Text("Laki-laki", modifier = Modifier.padding(top = 12.dp))
                 Spacer(Modifier.width(16.dp))
-                RadioButton(
-                    selected = jenisKelamin == "Perempuan",
-                    onClick = { jenisKelamin = "Perempuan" }
-                )
-                Text("Perempuan")
+                RadioButton(selected = jenisKelamin == "Perempuan", onClick = { jenisKelamin = "Perempuan" })
+                Text("Perempuan", modifier = Modifier.padding(top = 12.dp))
             }
 
             OutlinedTextField(
@@ -155,6 +149,7 @@ fun EntryPasienScreen(
                         Icon(Icons.Default.DateRange, contentDescription = "Pilih Tanggal")
                     }
                 },
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { openDatePicker() }
@@ -164,21 +159,39 @@ fun EntryPasienScreen(
                 value = alamat,
                 onValueChange = { alamat = it },
                 label = { Text("Alamat") },
+                leadingIcon = { Icon(Icons.Default.Home, null) },
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             )
 
             OutlinedTextField(
                 value = nomorTelepon,
-                onValueChange = { nomorTelepon = it },
+                onValueChange = { nomorTelepon = it.filter { c -> c.isDigit() } },
                 label = { Text("Nomor Telepon") },
+                leadingIcon = { Icon(Icons.Default.Phone, null) },
+                isError = telpError != null,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             )
 
+            if (telpError != null) {
+                Text(
+                    text = telpError,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 16.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
             Button(
-                modifier = Modifier.fillMaxWidth(),
-                enabled = nama.isNotBlank() &&
-                        jenisKelamin.isNotBlank() &&
-                        tanggalLahir.isNotBlank(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                enabled = isFormValid && !loading,
                 onClick = {
                     val p = Pasien(
                         id_pasien = pasienId ?: 0,
@@ -188,7 +201,6 @@ fun EntryPasienScreen(
                         alamat = alamat,
                         nomor_telepon = nomorTelepon
                     )
-
                     if (pasienId == null) {
                         pasienViewModel.createPasien(p)
                     } else {
@@ -196,19 +208,29 @@ fun EntryPasienScreen(
                     }
                 }
             ) {
-                Text(if (pasienId == null) "Tambah" else "Update")
+                if (loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text(if (pasienId == null) "Simpan Data" else "Update Data", fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
 
-    // ✅ AlertDialog untuk error
-    if (showErrorDialog) {
+    if (showSuccessDialog) {
         AlertDialog(
-            onDismissRequest = { showErrorDialog = false },
-            title = { Text("Peringatan") },
-            text = { Text(errorMessage) },
+            onDismissRequest = { },
+            icon = { Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = { Text("Sukses") },
+            text = { Text(if (pasienId == null) "Data pasien berhasil disimpan!" else "Data pasien berhasil diperbarui!") },
             confirmButton = {
-                TextButton(onClick = { showErrorDialog = false }) {
+                Button(onClick = {
+                    showSuccessDialog = false
+                    navigateBack()
+                }) {
                     Text("OK")
                 }
             }

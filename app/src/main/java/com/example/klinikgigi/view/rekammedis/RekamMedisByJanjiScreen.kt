@@ -1,16 +1,24 @@
 package com.example.klinikgigi.view.rekammedis
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Healing
+import androidx.compose.material.icons.filled.Note
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.klinikgigi.viewmodel.RekamMedisViewModel
 
@@ -34,12 +42,15 @@ fun RekamMedisByJanjiScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Rekam Medis") },
+                title = { Text("Detail Rekam Medis", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = navigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Kembali")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
             )
         }
     ) { padding ->
@@ -60,77 +71,78 @@ fun RekamMedisByJanjiScreen(
                     .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Belum ada rekam medis")
+                Text("Belum ada rekam medis untuk janji ini", color = MaterialTheme.colorScheme.outline)
             }
 
             else -> LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(vertical = 16.dp)
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(rekamMedisList, key = { it.id_rekam }) { rm ->
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        elevation = CardDefaults.cardElevation(4.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(4.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-
-                            Text(
-                                text = "Diagnosa",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary
+                            
+                            InfoSection(
+                                icon = Icons.Default.Healing,
+                                title = "Diagnosa",
+                                content = rm.diagnosa
                             )
-                            Text(rm.diagnosa)
-
-                            Divider()
-
-                            Text(
-                                text = "Catatan",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary
+                            
+                            Divider(color = MaterialTheme.colorScheme.surfaceVariant)
+                            
+                            InfoSection(
+                                icon = Icons.Default.Note,
+                                title = "Catatan",
+                                content = rm.catatan.ifBlank { "-" }
                             )
-                            Text(rm.catatan)
 
-                            Divider()
+                            Divider(color = MaterialTheme.colorScheme.surfaceVariant)
 
-                            Text(
-                                text = "Resep",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary
+                            InfoSection(
+                                icon = Icons.Default.Description,
+                                title = "Resep Obat",
+                                content = rm.resep.ifBlank { "-" }
                             )
-                            Text(rm.resep)
 
-                            Spacer(Modifier.height(12.dp))
+                            Spacer(Modifier.height(8.dp))
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.End,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-
-                                TextButton(
-                                    onClick = { navigateToEdit(rm.id_rekam) }
+                                OutlinedButton(
+                                    onClick = { navigateToEdit(rm.id_rekam) },
+                                    shape = RoundedCornerShape(8.dp)
                                 ) {
+                                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(8.dp))
                                     Text("Edit")
                                 }
 
-                                IconButton(
-                                    onClick = {
-                                        viewModel.deleteRekamMedis(rm.id_rekam)
-                                    }
+                                Spacer(Modifier.width(8.dp))
+
+                                Button(
+                                    onClick = { viewModel.deleteRekamMedis(rm.id_rekam) },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer),
+                                    shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = "Hapus",
-                                        tint = MaterialTheme.colorScheme.error
-                                    )
+                                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Hapus")
                                 }
                             }
                         }
@@ -143,6 +155,35 @@ fun RekamMedisByJanjiScreen(
             LaunchedEffect(it) {
                 viewModel.clearStatus()
             }
+        }
+    }
+}
+
+@Composable
+fun InfoSection(icon: ImageVector, title: String, content: String) {
+    Row(verticalAlignment = Alignment.Top) {
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
+            }
+        }
+        Spacer(Modifier.width(16.dp))
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = content,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

@@ -12,20 +12,51 @@ class DokterDashboardViewModel(
     private val repository: RepositoryKlinik
 ) : ViewModel() {
 
-    private val _jadwalKlinik =
-        MutableStateFlow<List<JanjiTemuPerDokter>>(emptyList())
+    private val _jadwalKlinik = MutableStateFlow<List<JanjiTemuPerDokter>>(emptyList())
     val jadwalKlinik: StateFlow<List<JanjiTemuPerDokter>> = _jadwalKlinik
+
+    private val _selectedDokter = MutableStateFlow<JanjiTemuPerDokter?>(null)
+    val selectedDokter: StateFlow<JanjiTemuPerDokter?> = _selectedDokter
 
     val isLoading = MutableStateFlow(false)
     val errorMessage = MutableStateFlow<String?>(null)
 
+    fun setSelectedDokter(dokter: JanjiTemuPerDokter) {
+        _selectedDokter.value = dokter
+    }
+
+    fun clearSelectedDokter() {
+        _selectedDokter.value = null
+    }
+
     fun loadJadwalKlinik() {
         viewModelScope.launch {
             isLoading.value = true
+            errorMessage.value = null
             try {
                 _jadwalKlinik.value = repository.getJanjiTemuPerDokter()
             } catch (e: Exception) {
-                errorMessage.value = e.message
+                errorMessage.value = e.message ?: "Gagal memuat data"
+            } finally {
+                isLoading.value = false
+            }
+        }
+    }
+
+    fun loadJanjiTemuByDokterId(dokterId: Int) {
+        viewModelScope.launch {
+            isLoading.value = true
+            errorMessage.value = null
+            try {
+                val allData = repository.getJanjiTemuPerDokter()
+                val found = allData.find { it.id_dokter == dokterId }
+                if (found != null) {
+                    _selectedDokter.value = found
+                } else {
+                    errorMessage.value = "Dokter tidak ditemukan"
+                }
+            } catch (e: Exception) {
+                errorMessage.value = e.message ?: "Gagal memuat data"
             } finally {
                 isLoading.value = false
             }

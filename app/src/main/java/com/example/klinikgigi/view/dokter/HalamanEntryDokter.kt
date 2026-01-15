@@ -1,38 +1,24 @@
 package com.example.klinikgigi.view.dokter
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.MedicalServices
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import com.example.klinikgigi.modeldata.Dokter
 import com.example.klinikgigi.viewmodel.DokterViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,11 +31,14 @@ fun HalamanEntryDokter(
     var nama by remember { mutableStateOf("") }
     var spesialisasi by remember { mutableStateOf("") }
     var telp by remember { mutableStateOf("") }
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
     val telpValid = telp.isEmpty() || telp.matches(Regex("^08[0-9]{9,11}$"))
     val telpError = if (telp.isNotEmpty() && !telpValid) {
         "Nomor telepon harus diawali 08 dan terdiri dari 11–13 digit"
     } else null
+
+    val isFormValid = nama.isNotBlank() && spesialisasi.isNotBlank() && telpValid && telp.length in 11..13
 
     val message by viewModel.message.collectAsState()
     val loading by viewModel.loading.collectAsState()
@@ -59,44 +48,51 @@ fun HalamanEntryDokter(
 
     LaunchedEffect(message) {
         message?.let { msg ->
-            scope.launch { snackbarHostState.showSnackbar(msg) }
             if (msg.contains("berhasil", ignoreCase = true)) {
-                kotlinx.coroutines.delay(1000)
-                onSelesai()
+                showSuccessDialog = true
+            } else {
+                scope.launch { snackbarHostState.showSnackbar(msg) }
             }
             viewModel.clearMessage()
         }
     }
 
-    // Form valid jika semua terisi + telp valid
-    val isFormValid = nama.isNotBlank() &&
-            spesialisasi.isNotBlank() &&
-            telpValid &&
-            telp.length in 11..13
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Masukkan Data Dokter") },
+                title = { Text("Tambah Dokter Baru", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onKembali) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Kembali")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(
             modifier = Modifier
+                .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            Text(
+                text = "Lengkapi data dokter di bawah ini:",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
             OutlinedTextField(
                 value = nama,
                 onValueChange = { nama = it },
                 label = { Text("Nama Dokter") },
+                leadingIcon = { Icon(Icons.Default.Person, null) },
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -104,66 +100,74 @@ fun HalamanEntryDokter(
                 value = spesialisasi,
                 onValueChange = { spesialisasi = it },
                 label = { Text("Spesialisasi") },
+                placeholder = { Text("Contoh: Orthodontist") },
+                leadingIcon = { Icon(Icons.Default.MedicalServices, null) },
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             )
 
             OutlinedTextField(
                 value = telp,
-                onValueChange = { telp = it.filter { char -> char.isDigit() } }, // Hanya angka
+                onValueChange = { telp = it.filter { c -> c.isDigit() } },
                 label = { Text("Nomor Telepon") },
+                leadingIcon = { Icon(Icons.Default.Phone, null) },
                 isError = telpError != null,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Tampilkan error di bawah TextField
             if (telpError != null) {
                 Text(
                     text = telpError,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                    modifier = Modifier.padding(start = 16.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
             Button(
                 onClick = {
-                    when {
-                        nama.isBlank() -> scope.launch {
-                            snackbarHostState.showSnackbar("Nama dokter wajib diisi")
-                        }
-                        spesialisasi.isBlank() -> scope.launch {
-                            snackbarHostState.showSnackbar("Spesialisasi wajib diisi")
-                        }
-                        !telpValid || telp.length !in 11..13 -> scope.launch {
-                            snackbarHostState.showSnackbar("Nomor telepon tidak valid")
-                        }
-                        else -> {
-                            viewModel.createDokter(
-                                Dokter(
-                                    id_dokter = 0,
-                                    nama_dokter = nama,
-                                    spesialisasi = spesialisasi,
-                                    nomor_telepon = telp
-                                )
-                            )
-                        }
-                    }
+                    viewModel.createDokter(
+                        Dokter(0, nama, spesialisasi, telp)
+                    )
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp),
                 enabled = isFormValid && !loading
             ) {
                 if (loading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(24.dp),
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Text("Simpan")
+                    Text("Simpan Data", fontWeight = FontWeight.Bold)
                 }
             }
         }
+    }
+
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { /* Tidak bisa dismiss, harus klik OK */ },
+            icon = { Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = { Text("Sukses") },
+            text = { Text("Data dokter berhasil disimpan!") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showSuccessDialog = false
+                        onSelesai()
+                    }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }

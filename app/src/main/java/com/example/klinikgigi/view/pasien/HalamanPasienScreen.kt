@@ -1,16 +1,25 @@
 package com.example.klinikgigi.view.pasien
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.klinikgigi.modeldata.Pasien
 import com.example.klinikgigi.viewmodel.PasienViewModel
@@ -36,16 +45,23 @@ fun HalamanPasienScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Data Pasien") },
+                title = { Text("Data Pasien", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = navigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Kembali")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = navigateToEntryPasien) {
+            FloatingActionButton(
+                onClick = navigateToEntryPasien,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Tambah Pasien")
             }
         }
@@ -53,24 +69,23 @@ fun HalamanPasienScreen(
 
         Column(
             modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
                 .fillMaxSize()
+                .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
         ) {
 
             // 🔍 SEARCH BAR PASIEN
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { pasienViewModel.updateSearchQuery(it) },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Cari pasien berdasarkan nama") },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = "Search")
-                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                placeholder = { Text("Cari pasien...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                shape = RoundedCornerShape(12.dp),
                 singleLine = true
             )
-
-            Spacer(modifier = Modifier.height(12.dp))
 
             if (loading) {
                 Box(
@@ -86,12 +101,22 @@ fun HalamanPasienScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Data pasien tidak ditemukan")
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Data pasien tidak ditemukan", color = MaterialTheme.colorScheme.outline)
+                        }
                     }
                 } else {
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxSize()
                     ) {
                         items(pasienList) { pasien ->
                             PasienItem(
@@ -116,7 +141,8 @@ fun HalamanPasienScreen(
     pasienYangAkanDihapus?.let { pasien ->
         AlertDialog(
             onDismissRequest = { pasienYangAkanDihapus = null },
-            title = { Text("Konfirmasi Hapus") },
+            icon = { Icon(Icons.Default.Delete, contentDescription = null) },
+            title = { Text("Hapus Pasien") },
             text = { Text("Yakin ingin menghapus pasien \"${pasien.nama_pasien}\"?") },
             confirmButton = {
                 TextButton(
@@ -125,9 +151,10 @@ fun HalamanPasienScreen(
                             pasienViewModel.deletePasien(id)
                         }
                         pasienYangAkanDihapus = null
-                    }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Ya")
+                    Text("Hapus")
                 }
             },
             dismissButton = {
@@ -147,25 +174,70 @@ fun PasienItem(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(4.dp)
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(pasien.nama_pasien, style = MaterialTheme.typography.titleMedium)
-            Text("Jenis Kelamin : ${pasien.jenis_kelamin}")
-            Text("Tanggal Lahir : ${pasien.tanggal_lahir}")
-            Text("Alamat        : ${pasien.alamat}")
-            Text("Telepon       : ${pasien.nomor_telepon}")
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+            // Avatar Placeholder
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center
             ) {
-                TextButton(onClick = onEdit) { Text("Edit") }
-                Spacer(modifier = Modifier.width(8.dp))
-                TextButton(onClick = onDelete) { Text("Hapus") }
+                Icon(
+                    Icons.Default.Person,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Info Pasien
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = pasien.nama_pasien,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "${pasien.jenis_kelamin} • ${pasien.tanggal_lahir}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Phone,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.outline
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = pasien.nomor_telepon,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+            }
+
+            // Actions
+            Column {
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = MaterialTheme.colorScheme.error)
+                }
             }
         }
     }

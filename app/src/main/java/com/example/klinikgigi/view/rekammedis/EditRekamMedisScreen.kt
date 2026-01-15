@@ -1,17 +1,26 @@
 package com.example.klinikgigi.view.rekammedis
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Healing
+import androidx.compose.material.icons.filled.MedicalServices
+import androidx.compose.material.icons.filled.Note
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.klinikgigi.modeldata.RekamMedis
 import com.example.klinikgigi.viewmodel.RekamMedisViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,6 +33,7 @@ fun EditRekamMedisScreen(
     val tindakanList by viewModel.tindakanList.collectAsState()
     val selectedRekamMedis by viewModel.selectedRekamMedis.collectAsState()
     val loading by viewModel.loading.collectAsState()
+    val statusMsg by viewModel.status.collectAsState()
 
     // ================= FORM STATE =================
     var idJanji by remember { mutableStateOf("") }
@@ -31,6 +41,10 @@ fun EditRekamMedisScreen(
     var diagnosa by remember { mutableStateOf("") }
     var catatan by remember { mutableStateOf("") }
     var resep by remember { mutableStateOf("") }
+    
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // ================= LOAD DATA =================
     LaunchedEffect(Unit) {
@@ -47,18 +61,42 @@ fun EditRekamMedisScreen(
             resep = it.resep
         }
     }
+    
+    LaunchedEffect(statusMsg) {
+        statusMsg?.let {
+             if (it.contains("berhasil", ignoreCase = true)) {
+                showSuccessDialog = true
+            } else {
+                scope.launch { snackbarHostState.showSnackbar(it) }
+            }
+            viewModel.clearStatus()
+        }
+    }
+    
+    // Change Detection
+    val isChanged = selectedRekamMedis?.let {
+        it.id_janji.toString() != idJanji ||
+        it.id_tindakan != idTindakan ||
+        it.diagnosa != diagnosa ||
+        it.catatan != catatan ||
+        it.resep != resep
+    } ?: false
+
+    val isFormValid = idJanji.isNotBlank() && idTindakan != null
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Edit Rekam Medis") },
+                title = { Text("Edit Rekam Medis", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = navigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Kembali")
                     }
-                }
+                },
+                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
 
         if (loading && selectedRekamMedis == null) {
@@ -73,17 +111,21 @@ fun EditRekamMedisScreen(
 
         Column(
             modifier = Modifier
+                .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(24.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
             OutlinedTextField(
                 value = idJanji,
                 onValueChange = { idJanji = it },
                 label = { Text("ID Janji") },
-                modifier = Modifier.fillMaxWidth()
+                 shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                readOnly = true // Keep it readonly generally as changing janji ID is risky
             )
 
             // ================= TINDAKAN =================
@@ -98,7 +140,9 @@ fun EditRekamMedisScreen(
                     value = selectedTindakan?.nama_tindakan ?: "",
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Tindakan") },
+                    label = { Text("Pilih Tindakan") },
+                    leadingIcon = { Icon(Icons.Default.MedicalServices, null) },
+                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.menuAnchor().fillMaxWidth()
                 )
                 ExposedDropdownMenu(
@@ -121,6 +165,8 @@ fun EditRekamMedisScreen(
                 value = diagnosa,
                 onValueChange = { diagnosa = it },
                 label = { Text("Diagnosa") },
+                leadingIcon = { Icon(Icons.Default.Healing, null) },
+                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -128,19 +174,28 @@ fun EditRekamMedisScreen(
                 value = catatan,
                 onValueChange = { catatan = it },
                 label = { Text("Catatan") },
-                modifier = Modifier.fillMaxWidth()
+                leadingIcon = { Icon(Icons.Default.Note, null) },
+                 shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2
             )
 
             OutlinedTextField(
                 value = resep,
                 onValueChange = { resep = it },
-                label = { Text("Resep") },
-                modifier = Modifier.fillMaxWidth()
+                label = { Text("Resep Obat") },
+                leadingIcon = { Icon(Icons.Default.Description, null) },
+                 shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2
             )
+            
+            Spacer(Modifier.height(16.dp))
 
             Button(
-                modifier = Modifier.fillMaxWidth(),
-                enabled = idJanji.isNotBlank() && idTindakan != null,
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                enabled = isFormValid && isChanged,
                 onClick = {
                     val rm = RekamMedis(
                         id_rekam = rekamMedisId,
@@ -151,11 +206,27 @@ fun EditRekamMedisScreen(
                         resep = resep
                     )
                     viewModel.updateRekamMedis(rm)
-                    navigateBack()
                 }
             ) {
-                Text("Simpan Perubahan")
+                Text("Simpan Perubahan", fontWeight = FontWeight.Bold)
             }
         }
+    }
+    
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { },
+            icon = { Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = { Text("Sukses") },
+            text = { Text("Data rekam medis berhasil diperbarui!") },
+            confirmButton = {
+                Button(onClick = {
+                    showSuccessDialog = false
+                    navigateBack()
+                }) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }

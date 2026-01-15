@@ -1,6 +1,16 @@
 package com.example.klinikgigi.uicontroller
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -11,7 +21,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.klinikgigi.uicontroller.route.*
 import com.example.klinikgigi.view.*
-import com.example.klinikgigi.view.dokter.DokterHomeScreen
 import com.example.klinikgigi.view.dokter.EditDokterScreen
 import com.example.klinikgigi.view.dokter.HalamanDokter
 import com.example.klinikgigi.view.dokter.HalamanEntryDokter
@@ -47,9 +56,17 @@ fun HostNavigasiKlinik(
 ) {
     NavHost(
         navController = navController,
-        startDestination = DestinasiLogin.route,
+        startDestination = DestinasiHome.route,
         modifier = modifier
     ) {
+        // ================= HOME =================
+        composable(DestinasiHome.route) {
+            HomeScreen(
+                onNextButton = {
+                    navController.navigate(DestinasiLogin.route)
+                }
+            )
+        }
 
         // ================= LOGIN =================
         composable(DestinasiLogin.route) {
@@ -80,31 +97,60 @@ fun HostNavigasiKlinik(
             )
         }
 
+        // ================= DOKTER DASHBOARD =================
         composable(DestinasiDokterHome.route) {
-            DokterHomeScreen(
-                navigateToJanjiTemu = {
-                    navController.navigate(DestinasiDokterJanji.route)
+            val vm: DokterDashboardViewModel = viewModel(factory = PenyediaViewModel.Factory)
+            DokterDashboardScreen(
+                viewModel = vm,
+                onDokterClick = { dokter ->
+                    navController.navigate(DestinasiDokterJanji.createRoute(dokter.id_dokter))
                 },
-                navigateToRekamMedis = {
-                    navController.navigate(DestinasiRekamMedisDokter.route)
-                },
-                navigateLogout = {
-                    navController.navigate("login") {
-                        popUpTo(0)
+                onLogout = {
+                    navController.navigate(DestinasiLogin.route) {
+                        popUpTo(DestinasiLogin.route) { inclusive = true }
                     }
                 }
             )
         }
 
-        composable(DestinasiDokterJanji.route) {
+// ================= DETAIL JANJI TEMU =================
+        composable(
+            route = "dokter_janji_temu/{idDokter}",
+            arguments = listOf(navArgument("idDokter") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val idDokter = backStackEntry.arguments?.getInt("idDokter") ?: run {
+                navController.popBackStack()
+                return@composable
+            }
 
-            val viewModel: DokterDashboardViewModel =
-                viewModel(factory = PenyediaViewModel.Factory)
+            val vm: DokterDashboardViewModel = viewModel(factory = PenyediaViewModel.Factory)
+            LaunchedEffect(idDokter) {
+                vm.loadJanjiTemuByDokterId(idDokter)
+            }
 
-            JanjiTemuDokterScreen(
-                viewModel = viewModel,
-                onBack = { navController.popBackStack() }
-            )
+            val dokter by vm.selectedDokter.collectAsState()
+            val loading by vm.isLoading.collectAsState()
+            val error by vm.errorMessage.collectAsState()
+
+            when {
+                loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+                error != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(error!!)
+                }
+                else -> dokter?.let { safeDokter ->
+                    JanjiTemuDokterScreen(
+                        dokter = safeDokter,
+                        onBack = { navController.popBackStack() },
+                        onLihatRekamMedis = { idJanji ->
+                            navController.navigate(DestinasiRekamMedisByJanji.createRoute(idJanji))
+                        }
+                    )
+                } ?: Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Data tidak tersedia")
+                }
+            }
         }
 
         composable(DestinasiRekamMedisDokter.route) {
