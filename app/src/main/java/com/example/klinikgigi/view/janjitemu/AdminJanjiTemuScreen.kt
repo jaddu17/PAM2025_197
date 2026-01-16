@@ -72,6 +72,7 @@ fun AdminJanjiTemuScreen(
 
     var searchText by remember { mutableStateOf("") }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showRekamMedisWarning by remember { mutableStateOf(false) }
     var selectedJanjiId by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(Unit) {
@@ -148,8 +149,12 @@ fun AdminJanjiTemuScreen(
                                 dokterName = getDokterName(janji.id_dokter),
                                 onEdit = { navigateToEdit(janji.id_janji) },
                                 onDelete = {
-                                    selectedJanjiId = janji.id_janji
-                                    showDeleteDialog = true
+                                    if (janji.sudah_ada_rekam_medis) {
+                                        showRekamMedisWarning = true
+                                    } else {
+                                        selectedJanjiId = janji.id_janji
+                                        showDeleteDialog = true
+                                    }
                                 },
                                 onRekamMedis = {
                                     if (janji.sudah_ada_rekam_medis) {
@@ -191,6 +196,20 @@ fun AdminJanjiTemuScreen(
             }
         )
     }
+
+    if (showRekamMedisWarning) {
+        AlertDialog(
+            onDismissRequest = { showRekamMedisWarning = false },
+            icon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+            title = { Text("Tidak Dapat Menghapus") },
+            text = { Text("Janji temu ini sudah memiliki data rekam medis dan tidak dapat dihapus.") },
+            confirmButton = {
+                TextButton(onClick = { showRekamMedisWarning = false }) {
+                    Text("Mengerti")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -203,16 +222,18 @@ fun JanjiTemuCard(
     onRekamMedis: () -> Unit
 ) {
     val statusColor = when (janji.status.name) {
-        "MENUNGGU" -> MaterialTheme.colorScheme.tertiary
+        "KONFIRMASI" -> MaterialTheme.colorScheme.tertiary
         "SELESAI" -> Color(0xFF4CAF50) // Green
-        "BATAL" -> MaterialTheme.colorScheme.error
+        "DIBATALKAN" -> MaterialTheme.colorScheme.error
+        "TIDAK_HADIR" -> Color(0xFFFF9800) // Orange
         else -> MaterialTheme.colorScheme.outline
     }
 
     val statusBg = when (janji.status.name) {
-        "MENUNGGU" -> MaterialTheme.colorScheme.tertiaryContainer
+        "KONFIRMASI" -> MaterialTheme.colorScheme.tertiaryContainer
         "SELESAI" -> Color(0xFFE8F5E9) // Light Green
-        "BATAL" -> MaterialTheme.colorScheme.errorContainer
+        "DIBATALKAN" -> MaterialTheme.colorScheme.errorContainer
+        "TIDAK_HADIR" -> Color(0xFFFFF3E0) // Light Orange
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
 

@@ -81,7 +81,7 @@ fun HalamanPasienScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                placeholder = { Text("Cari pasien...") },
+                placeholder = { Text("Cari nama / no telepon...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true

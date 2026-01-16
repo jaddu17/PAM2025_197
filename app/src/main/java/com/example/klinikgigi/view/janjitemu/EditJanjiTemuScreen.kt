@@ -47,7 +47,7 @@ fun EditJanjiTemuScreen(
     var tanggal by remember { mutableStateOf("") }
     var jam by remember { mutableStateOf("") }
     var keluhan by remember { mutableStateOf("") }
-    var status by remember { mutableStateOf(StatusJanji.MENUNGGU) }
+    var status by remember { mutableStateOf(StatusJanji.KONFIRMASI) }
     
     var showSuccessDialog by remember { mutableStateOf(false) }
 

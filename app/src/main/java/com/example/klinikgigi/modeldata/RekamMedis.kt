@@ -9,5 +9,7 @@ data class RekamMedis(
     val id_tindakan: Int,     // relasi ke tabel tindakan
     val diagnosa: String,
     val catatan: String,
-    val resep: String,       // tanggal rekam (YYYY-MM-DD)
+    val resep: String,
+    val created_at: String? = null,
+    val updated_at: String? = null
 )

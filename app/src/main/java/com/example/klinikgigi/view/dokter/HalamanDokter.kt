@@ -95,7 +95,7 @@ fun HalamanDokter(
             OutlinedTextField(
                 value = textSearch,
                 onValueChange = { textSearch = it },
-                label = { Text("Cari dokter...") },
+                label = { Text("Cari nama / spesialis...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier

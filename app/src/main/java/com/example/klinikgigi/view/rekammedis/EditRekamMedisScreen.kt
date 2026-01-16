@@ -62,14 +62,19 @@ fun EditRekamMedisScreen(
         }
     }
     
+    val success by viewModel.success.collectAsState()
+    
     LaunchedEffect(statusMsg) {
         statusMsg?.let {
-             if (it.contains("berhasil", ignoreCase = true)) {
-                showSuccessDialog = true
-            } else {
-                scope.launch { snackbarHostState.showSnackbar(it) }
-            }
+            scope.launch { snackbarHostState.showSnackbar(it) }
             viewModel.clearStatus()
+        }
+    }
+
+    LaunchedEffect(success) {
+        if (success) {
+            showSuccessDialog = true
+            viewModel.clearSuccess()
         }
     }
     
