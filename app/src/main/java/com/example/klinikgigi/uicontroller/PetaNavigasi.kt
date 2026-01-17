@@ -135,15 +135,6 @@ fun HostNavigasiKlinik(
             )
         }
 
-        composable(DestinasiRekamMedisDokter.route) {
-            val vm: RekamMedisViewModel =
-                viewModel(factory = PenyediaViewModel.Factory)
-
-            RekamMedisDokterScreen(
-                viewModel = vm,
-                onBack = { navController.popBackStack() }
-            )
-        }
 
         // ================= DOKTER =================
         composable(DestinasiDokter.route) {

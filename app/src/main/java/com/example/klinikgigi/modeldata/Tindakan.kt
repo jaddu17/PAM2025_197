@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Tindakan(
-    val id_tindakan: Int = 0,
+    val id_tindakan: Int,
     val nama_tindakan: String,
     val deskripsi: String,
     val harga: String

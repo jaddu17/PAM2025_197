@@ -43,6 +43,9 @@ fun EditDokterScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+
     LaunchedEffect(dokter) {
         dokter?.let {
             nama = it.nama_dokter
@@ -56,7 +59,8 @@ fun EditDokterScreen(
             if (msg.contains("berhasil", ignoreCase = true)) {
                 showSuccessDialog = true
             } else {
-                scope.launch { snackbarHostState.showSnackbar(msg) }
+                errorMessage = msg
+                showErrorDialog = true
             }
             viewModel.clearMessage()
         }
@@ -185,6 +189,22 @@ fun EditDokterScreen(
                         showSuccessDialog = false
                         onBack()
                     }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    if (showErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { showErrorDialog = false },
+            icon = { Icon(Icons.Default.MedicalServices, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+            title = { Text("Gagal") },
+            text = { Text(errorMessage) },
+            confirmButton = {
+                Button(
+                    onClick = { showErrorDialog = false }
                 ) {
                     Text("OK")
                 }

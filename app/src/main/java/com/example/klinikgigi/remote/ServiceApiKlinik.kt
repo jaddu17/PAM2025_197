@@ -95,7 +95,4 @@ interface ServiceApiKlinik {
 
     @DELETE("rekam_medis/delete.php")
     suspend fun deleteRekamMedis(@Query("id") id: Int): Response<Void>
-
-    @GET("rekam_medis/read.php")
-    suspend fun getRekamMedisByJanji(@Query("id_janji") idJanji: Int? = null): List<RekamMedis>
 }

@@ -4,9 +4,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class RekamMedis(
-    val id_rekam: Int,        // auto-generate di server
-    val id_janji: Int,        // relasi ke tabel janji_temu
-    val id_tindakan: Int,     // relasi ke tabel tindakan
+    val id_rekam: Int,
+    val id_janji: Int,
+    val id_tindakan: Int,
     val diagnosa: String,
     val catatan: String,
     val resep: String,

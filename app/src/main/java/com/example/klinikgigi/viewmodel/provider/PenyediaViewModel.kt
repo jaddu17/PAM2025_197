@@ -13,15 +13,12 @@ import com.example.klinikgigi.viewmodel.PasienViewModel
 import com.example.klinikgigi.viewmodel.RekamMedisViewModel
 import com.example.klinikgigi.viewmodel.TindakanViewModel
 
-// Ambil Application (AplikasiKlinik)
 fun CreationExtras.aplikasiKlinik(): AplikasiKlinik =
     (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as AplikasiKlinik)
 
-// Provider ViewModel (Sama template Tugas)
 object PenyediaViewModel {
     val Factory = viewModelFactory {
 
-        // ----- ViewModel untuk daftar dokter -----
         initializer {
             DokterViewModel(
                 aplikasiKlinik().container.repositoryKlinik

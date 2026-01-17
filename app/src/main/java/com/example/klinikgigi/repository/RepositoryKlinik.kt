@@ -8,10 +8,6 @@ import com.example.klinikgigi.modeldata.RekamMedis
 import com.example.klinikgigi.modeldata.Tindakan
 import com.example.klinikgigi.remote.ServiceApiKlinik
 import retrofit2.Response
-
-/**
- * Repository interface
- */
 interface RepositoryKlinik {
 
     // ---------------- Dokter ----------------
@@ -53,9 +49,6 @@ interface RepositoryKlinik {
     suspend fun getRekamMedisByJanji(idJanji: Int): List<RekamMedis>
 }
 
-/**
- * Implementasi Repository
- */
 class JaringanRepositoryKlinik(
     private val api: ServiceApiKlinik
 ) : RepositoryKlinik {

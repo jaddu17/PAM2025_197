@@ -90,6 +90,16 @@ class DokterViewModel(private val repository: RepositoryKlinik) : ViewModel() {
         viewModelScope.launch {
             _loading.value = true
             try {
+                // Cek apakah nama dokter sudah digunakan oleh dokter lain (case-insensitive)
+                val isDuplicate = _dokterList.value.any { 
+                    it.id_dokter != dokter.id_dokter && it.nama_dokter.equals(dokter.nama_dokter, ignoreCase = true) 
+                }
+                
+                if (isDuplicate) {
+                    _message.value = "nama dokter sudah digunakan"
+                    return@launch
+                }
+
                 repository.updateDokter(dokter)
                 _message.value = "Data dokter berhasil diperbarui"
                 _selectedDokter.value = null // reset seleksi setelah update (opsional)

@@ -27,7 +27,7 @@ import com.example.klinikgigi.viewmodel.RekamMedisViewModel
 fun RekamMedisByJanjiScreen(
     idJanji: Int,
     viewModel: RekamMedisViewModel,
-    isAdmin: Boolean = true, // Default true agar pemanggil lama tidak error
+    isAdmin: Boolean = true,
     navigateBack: () -> Unit,
     navigateToEdit: (Int) -> Unit
 ) {
@@ -45,7 +45,7 @@ fun RekamMedisByJanjiScreen(
             TopAppBar(
                 title = { 
                     Text(
-                        if (isAdmin) "Detail Rekam Medis" else "Detail Rekam Medis (View Only)", 
+                        if (isAdmin) "Detail Rekam Medis" else "Detail Rekam Medis (Dokter View)",
                         fontWeight = FontWeight.Bold
                     ) 
                 },

@@ -48,7 +48,7 @@ fun HalamanDokter(
         viewModel.setSearchQuery(textSearch)
     }
 
-    // Observe error messages from ViewModel
+    // error messages dari ViewModel
     LaunchedEffect(message) {
         message?.let { msg ->
             if (msg.contains("tidak dapat dihapus", ignoreCase = true) || 

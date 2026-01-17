@@ -91,6 +91,7 @@ fun EntryTindakanScreen(
                 onClick = {
                     viewModel.createTindakan(
                         Tindakan(
+                            id_tindakan = 0,
                             nama_tindakan = namaTindakan,
                             deskripsi = deskripsi,
                             harga = harga
